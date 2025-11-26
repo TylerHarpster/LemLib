@@ -6,20 +6,39 @@
 #include "lemlib/motions/turnTo.hpp"
 #include "pros/llemu.hpp"
 
+using namespace pros;
+
+
+
 logger::Terminal terminal;
 
-lemlib::MotorGroup rightDrive({8, 10}, 360_rpm);
-lemlib::MotorGroup leftDrive({-1, 11, -12, 13}, 360_rpm);
+lemlib::MotorGroup rightMotors({11,-12,13}, 600_rpm);
+lemlib::MotorGroup leftMotors({-18,19,-20}, 600_rpm);
 
-lemlib::V5InertialSensor imu(1);
+lemlib::V5InertialSensor imu(15);
 
-lemlib::TrackingWheel verticalTracker('E', 'F', true, 2.75_in, 26.5_cm / 2);
-lemlib::TrackingWheel horizontalTracker('G', 'H', false, 2.75_in, -26.5_cm / 2);
+lemlib::TrackingWheel leftTracker(-5, 2.75_in, 26.5_cm);
+lemlib::TrackingWheel rightTracker(4, 2.75_in, 26.5_cm);
+lemlib::TrackingWheel horizontalTracker(-14, 2.75_in, -26.5_cm / 2);
 
-lemlib::TrackingWheelOdometry odom({&imu}, {&verticalTracker}, {&horizontalTracker});
+lemlib::TrackingWheelOdometry odom({&imu}, {&leftTracker,&rightTracker}, {&horizontalTracker});
 
-lemlib::PID pid(0.05, 0, 0);
+lemlib::PID pid(1, 1, 1);
 lemlib::ExitCondition<AngleRange> exitCondition(1_stDeg, 2_sec);
+
+
+
+pros::ADIDigitalOut wingPiston ('B');
+pros::ADIDigitalOut tonguePiston ('A');
+int wingState=0;
+int tongueState=0;
+
+
+
+Motor UpperIntake (-10);
+Motor MiddleIntake (1,MotorGearset::green); // SET THIS HALF WATT
+Motor LowerIntake (-14,MotorGearset::green); // SET THIS HALF WATT
+
 
 void initialize() {
     terminal.setLoggingLevel(logger::Level::DEBUG);
@@ -43,13 +62,97 @@ void initialize() {
                        .angularPID = pid,
                        .exitConditions = std::vector<lemlib::ExitCondition<AngleRange>>({exitCondition}),
                        .poseGetter = [] -> units::Pose { return odom.getPose(); },
-                       .leftMotors = leftDrive,
-                       .rightMotors = rightDrive,
+                       .leftMotors = leftMotors,
+                       .rightMotors = rightMotors,
                    });
 }
 
 void disabled() {}
 
-void autonomous() {}
+void autonomous() {
+	pros::delay(2000);
+	printf("hawk tuh\n");
+}
 
-void opcontrol() {}
+
+void opcontrol() {
+	pros::Controller Controller(pros::E_CONTROLLER_MASTER);
+
+        lemlib::turnTo(90_cDeg, 100_sec, {.slew = 1},
+                   {
+                       .angularPID = pid,
+                       .exitConditions = std::vector<lemlib::ExitCondition<AngleRange>>({exitCondition}),
+                       .poseGetter = [] -> units::Pose { return odom.getPose(); },
+                       .leftMotors = leftMotors,
+                       .rightMotors = rightMotors,
+                   });
+    autonomous();
+	while(1){
+		printf("f0o543t43t3tdit\n");
+		if(Controller.get_digital_new_press(DIGITAL_Y)){wingPiston.set_value(wingState++%2);}
+		if(Controller.get_digital_new_press(DIGITAL_B)){tonguePiston.set_value(tongueState++%2);}
+		
+		float j1=0.5*Controller.get_analog(ANALOG_RIGHT_X);
+		float j3=0.5*Controller.get_analog(ANALOG_LEFT_Y);
+
+		leftMotors.move(j3+j1);
+		rightMotors.move(j3-j1);
+
+		//storage
+		if(Controller.get_digital(DIGITAL_R1)){
+			LowerIntake.move(94*0.5);
+			MiddleIntake.move(63*0.5);
+			UpperIntake.move(63);
+		}
+	
+		if(Controller.get_digital_new_press(DIGITAL_R1)){
+			MiddleIntake.brake();
+			UpperIntake.brake();
+		}
+
+		//move blocks up
+		if(Controller.get_digital(DIGITAL_L1)){
+			LowerIntake.move(94*0.5);
+			MiddleIntake.move(127*0.5);
+			UpperIntake.move(127);
+		}
+
+		//move blocks down
+		if(Controller.get_digital(DIGITAL_R2)){
+			LowerIntake.move(-31*0.5);
+			MiddleIntake.move(-63*0.5);
+			UpperIntake.move(-63);
+		}
+
+		//middle goal
+		if(Controller.get_digital(DIGITAL_L2)){
+			LowerIntake.move(63*0.5);
+			MiddleIntake.move(94*0.5);
+			UpperIntake.move(-106);
+		}
+
+		//un-middle goal
+		if(Controller.get_digital(DIGITAL_X)){
+			LowerIntake.move(-63*0.5);
+			MiddleIntake.move(-94*0.5);
+			UpperIntake.move(106);
+		}
+
+		//unstucky
+		if(Controller.get_digital(DIGITAL_DOWN)){
+			LowerIntake.move(-127*0.5);
+			MiddleIntake.move(127*0.5);
+		}
+
+		if(Controller.get_digital(DIGITAL_RIGHT)){
+			MiddleIntake.brake();
+			LowerIntake.brake();
+			UpperIntake.brake();
+		}
+
+		pros::delay(50);
+
+	}
+
+
+}
