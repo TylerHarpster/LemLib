@@ -5,8 +5,38 @@
 #include "lemlib/tracking/TrackingWheelOdom.hpp"
 #include "lemlib/motions/turnTo.hpp"
 #include "pros/llemu.hpp"
+#include "main.h"
+#include "api.h" // IWYU pragma: keep
+#include "lemlib/timer.hpp"
+#include "pros/abstract_motor.hpp"
+#include "pros/adi.h"
+#include "pros/adi.hpp"
+#include "pros/misc.h"
+#include "pros/misc.hpp"
+#include "pros/motor_group.hpp"
+#include "pros/motors.h"
+#include "pros/motors.hpp"
+#include "pros/rotation.hpp"
+#include "pros/rtos.h"
+#include "pros/rtos.hpp"
+#include <chrono>
+#include <ctime>
+#include <thread>
+#include <cmath>
+#include "hot-cold-asset/asset.hpp"
+#include "lemlib/motions/moveToPose.hpp"
+#include "lemlib/motions/moveToPoint.hpp"
 
 using namespace pros;
+/*
+  __  __    U  ___ u   _      ____   __   __        _       _   _    _   _        ____              _   _   
+U|' \/ '|u   \/"_ \/  |"|    |  _"\  \ \ / /    U  /"\  u  |'| |'|  |'| |'|      |  _"\    ___     |'| |'|  
+\| |\/| |/   | | | |U | | u /| | | |  \ V /      \/ _ \/  /| |_| |\/| |_| |\    /| | | |  |_"_|   /| |_| |\ 
+ | |  | |.-,_| |_| | \| |/__U| |_| |\U_|"|_u     / ___ \  U|  _  |uU|  _  |u    U| |_| |\  | |    U|  _  |u 
+ |_|  |_| \_)-\___/   |_____||____/ u  |_|      /_/   \_\  |_| |_|  |_| |_|      |____/ uU/| |\u   |_| |_|  
+<<,-,,-.       \\     //  \\  |||_ .-,//|(_      \\    >>  //   \\  //   \\       |||_.-,_|___|_,-.//   \\  
+ (./  \.)     (__)   (_")("_)(__)_) \_) (__)    (__)  (__)(_") ("_)(_") ("_)     (__)_)\_)-' '-(_/(_") ("_) 
+*/
 
 
 
@@ -69,9 +99,17 @@ void initialize() {
 
 void disabled() {}
 
+// struct FollowSettings {
+//         Length trackWidth = track_width;
+//         std::function<units::Pose()> poseGetter = pose_getter;
+//         lemlib::MotorGroup& leftMotors = left_motors;
+//         lemlib::MotorGroup& rightMotors = right_motors;
+// };
+
+// void follow(const asset& path, Length lookaheadDistance, Time timeout, FollowParams params, FollowSettings settings);
+
 void autonomous() {
-	pros::delay(2000);
-	printf("hawk tuh\n");
+	lemlib::moveToPose()
 }
 
 
@@ -86,6 +124,7 @@ void opcontrol() {
                        .leftMotors = leftMotors,
                        .rightMotors = rightMotors,
                    });
+        
     autonomous();
 	while(1){
 		printf("f0o543t43t3tdit\n");
